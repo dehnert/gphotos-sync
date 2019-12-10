@@ -288,3 +288,35 @@ class GoogleAlbumsSync(object):
                 log.error('bad link to %s', full_file_name)
 
         log.warning("Created %d new album folder links", count)
+
+    def populate_new_album(self):
+        album_path = self._root_folder / "create_albums" / self.create_new_album
+        member_ids = []
+        for photo in album_path.iterdir():
+            if photo.is_symlink():
+                target = photo.resolve().relative_to(self._root_folder)
+                local_path = target.parent
+                local_name = target.name
+                file_row = self._db.get_file_by_path(GooglePhotosRow, local_path, local_name)
+                if file_row:
+                    member_ids.append(file_row._id)
+                else:
+                    log.warning('ignoring unknown target %s of %s', target, photo)
+            else:
+                log.warning('ignoring non-symlink %s', photo)
+
+        create_album_body = dict(album=dict(title=self.create_new_album))
+        response = self._api.albums.create.execute(create_album_body)
+        if response:
+            log.warning("got response: %s", response.__dict__)
+            album_id = response.json()['id']
+            add_item_body = dict(mediaItemIds=member_ids)
+            log.debug("Preparing to add items: %s", add_item_body)
+            try:
+                response = self._api.albums.batchAddMediaItems.execute(
+                        add_item_body, albumId=album_id)
+            except Exception as exc:
+                log.warning("got response %s", exc.response.__dict__)
+                log.warning("request response %s", exc.request.__dict__)
+                raise
+            log.info("got response %s when adding items", response)

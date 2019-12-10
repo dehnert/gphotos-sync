@@ -64,6 +64,10 @@ class GooglePhotosSyncMain:
         help="only synchronize the contents of a single album."
              "use quotes e.g. \"album name\" for album names with spaces")
     parser.add_argument(
+        "--create-new-album",
+        action='store',
+        help="create new album (of pre-existing photos)")
+    parser.add_argument(
         "--logfile",
         action='store',
         help="full path to debug level logfile, default: <root>/gphotos.log."
@@ -272,6 +276,7 @@ class GooglePhotosSyncMain:
         self.google_albums_sync.album_index = not args.no_album_index
         self.google_albums_sync.use_start_date = args.album_date_by_first_photo
         self.google_albums_sync.album = args.album
+        self.google_albums_sync.create_new_album = args.create_new_album
 
         self.google_photos_down.start_date = self._start_date
         self.google_photos_down.end_date = self._end_date
@@ -359,6 +364,9 @@ class GooglePhotosSyncMain:
                     self.local_files_scan.scan_local_files()
                     self.google_photos_idx.get_extra_meta()
                 self.local_files_scan.find_missing_gphotos()
+
+            if args.create_new_album:
+                self.google_albums_sync.populate_new_album()
 
     def start(self, args: Namespace):
         if args.get_locations:

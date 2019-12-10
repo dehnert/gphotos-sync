@@ -68,11 +68,13 @@ class Method:
                     self.path_args.append(key)
                 else:
                     self.query_args.append(key)
+        log.debug("API: %s", self.__dict__)
 
     def execute(self, body: str = None, **k_args: Dict[str, str]):
         """ executes the remote REST call for this Method"""
         path_args = {k: k_args[k] for k in self.path_args if k in k_args}
         query_args = {k: k_args[k] for k in self.query_args if k in k_args}
+        log.debug("execute %s: %s %s", self.path, self.query_args, query_args)
         path = self.service.base_url + self.make_path(path_args)
         if body:
             body = dumps(body)
@@ -99,6 +101,7 @@ class Method:
         Returns:
             The URL with inserted parameters
         """
+        log.debug("make_path %s: %s", self.path, path_args)
         result = self.path
         path_params = []
         for key, value in path_args.items():
